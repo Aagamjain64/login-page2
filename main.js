@@ -6,9 +6,10 @@ const path = require('path');
 const session = require('express-session');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
-const User = require('./model/schema.js'); // Your user schema
+const User = require('./schema.js');
+require('dotenv').config();
 
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Middleware Setup
 app.set('view engine', 'ejs');
@@ -18,14 +19,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB connection
-const mongo_url = 'mongodb://127.0.0.1:27017/account';
+const mongo_url = process.env.MONGO_URI;
 mongoose.connect(mongo_url)
   .then(() => console.log('MongoDB connection successful'))
   .catch((err) => console.log('MongoDB connection failed', err));
 
 // Session setup
 app.use(session({
-  secret: 'yourSecretKey',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false
 }));
@@ -33,7 +34,7 @@ app.use(session({
 // Passport setup
 app.use(passport.initialize());
 app.use(passport.session());
-passport.use(new LocalStrategy(User.authenticate())); // Uses passport-local-mongoose
+passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
@@ -43,16 +44,15 @@ app.get('/', (req, res) => {
 });
 
 // Registration Route
-app.post('/login', async (req, res) => {
+app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const user = new User({ username }); // Create a user instance
-    const registeredUser = await User.register(user, password); // Hashes password & saves
-    
+    const user = new User({ username });
+    const registeredUser = await User.register(user, password);
     res.send("User registered successfully!");
   } catch (err) {
     console.error(err);
-    res.send(err);
+    res.send(err.message);
   }
 });
 
